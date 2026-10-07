@@ -39,11 +39,47 @@ Rationale: LIMO has no exceptions or system calls, so a stop instruction is need
 Departures from RV32I:
 
 1. 16 registers instead of 32.
+Reason:
+Using 16 registers means each register number requires only 4 bits instead of 5 bits. 
+This frees encoding space inside the fixed 32-bit instruction, which can be used to provide larger immediate fields.
+It also reduces the size of the register file and makes register comparisons in the hazard/forwarding logic smaller. 
+The trade-off is that programs have fewer registers available, so larger programs may need to reuse registers or access memory more often.
+
 2. Field positions differ; rd is at [10:7] with 4 bits; opcode/funct3/funct7 positions are kept recognizable.
+
+Reason:
+Four bits are sufficient to identify any of the 16 LIMO registers because:
+
+2⁴ = 16
+
+This saves encoding bits while still allowing every LIMO register to be addressed.
+The saved bits can then be used for larger immediate values while keeping the instruction length fixed at 32 bits.
+
 3. 14-bit immediates instead of 12; freed register bits are used for the larger immediate.
+
+Reason:
+Reducing the register fields from 5 bits to 4 bits frees two bits in a 32-bit instruction.
+These two bits can be added to the immediate field, increasing it from 12 bits to 14 bits.
+
 4. Branch/jump offsets count words rather than bytes because instructions are 4-byte aligned.
+Reason:
+LIMO instructions are fixed at 32 bits, meaning every instruction occupies 4 bytes and instruction
+addresses are therefore aligned to multiples of 4. The two lowest bits of a byte address are 
+consequently always zero for an instruction address.
+
+
 5. No U-type instructions (lui, auipc); optional U-type instructions are omitted because the 14-bit immediates cover the 1 KiB data memory.
+Reason:
+The purpose of LIMO is to provide a processor and assembly language that are accessible to learners through Sesotho. Using Sesotho
+terminology makes the architecture distinct from standard RISC-V while still allowing its underlying instruction formats and 
+datapath concepts to be derived from RISC-V.
+
 6. `ema` halt uses the RISC-V custom-0 opcode.
+
+Reason:
+LIMO is intended to run programs in a simulator, and the basic ISA does not rely on operating-system system calls or exceptions to 
+terminate a program. Therefore, the simulator needs an explicit architectural instruction that tells it that the program has finished.
+ema provides a simple and predictable way to stop fetching new instructions and terminate execution.
 
 
 
