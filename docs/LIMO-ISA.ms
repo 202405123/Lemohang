@@ -27,9 +27,6 @@ Rationale: Fixed length makes fetch use PC+4 and keeps decode as one step.
 Memory model (simulator): separate instruction memory (4 KiB/1024 words) and data memory (1 KiB/256 words), both starting at address 0.
 Rationale: Gives IF and MEM separate memories, so there is no structural hazard.
 
-Memory model (simulator): separate instruction memory (4 KiB/1024 words) and data memory (1 KiB/256 words), both starting at address 0.
-Rationale: Gives IF and MEM separate memories, so there is no structural hazard.
-
 Reset: PC=0, all registers=0, data memory=0.
 Rationale: Makes tests deterministic and repeatable.
 
@@ -65,14 +62,12 @@ These two bits can be added to the immediate field, increasing it from 12 bits t
 Reason:
 LIMO instructions are fixed at 32 bits, meaning every instruction occupies 4 bytes and instruction
 addresses are therefore aligned to multiples of 4. The two lowest bits of a byte address are 
-consequently always zero for an instruction address.
+consequently always zero for an instruction address so we don’t store them, and the same 14 bits reach 4× further (±32 KiB instead of ±8 KiB).
 
 
 5. No U-type instructions (lui, auipc); optional U-type instructions are omitted because the 14-bit immediates cover the 1 KiB data memory.
 Reason:
-The purpose of LIMO is to provide a processor and assembly language that are accessible to learners through Sesotho. Using Sesotho
-terminology makes the architecture distinct from standard RISC-V while still allowing its underlying instruction formats and 
-datapath concepts to be derived from RISC-V.
+14-bit immediates already cover the 1 KiB data memory, so a “load upper immediate” is not needed.
 
 6. `ema` halt uses the RISC-V custom-0 opcode.
 
@@ -108,7 +103,7 @@ With 16 registers, two register fields in I, S and B formats free 2 bits, which 
 | r7–r10  | bl0–bl3 (boloka, “keep”)           | s0–s3 | x8, x9, x18, x19 | Saved registers                                                           | Matches the convention students meet in Ripes.                            |
 | r11–r14 | nt0–nt3 (ntlha, “item”)            | a0–a3 | x10–x13          | Arguments / results                                                       | Same convention.                                                          |
 | r15     | motheo (“foundation”)              | gp    | x3               | Global pointer, convention only                                           | Reserved for data-base addressing.                                        |
-| —       | sebaka (“place”)                   | pc    | pc               | Program counter, byte address; not in the register file and not encodable | Changed only by branches, jumps and PC+4. Shown as “PC” in the simulator. |
+| none    | sebaka (“place”)                   | pc    | pc               | Program counter, byte address; not in the register file and not encodable | Changed only by branches, jumps and PC+4. Shown as “PC” in the simulator. |
 
 The assembler also accepts r0–r15. Names are case-insensitive. Twelve registers are general purpose (nk*, bl*, nt*). Three more (khutlo, qubu, motheo) are reserved by convention only, and the hardware does not enforce them.
 
@@ -419,7 +414,7 @@ cycle                 1   2   3   4   5   6   7
 
 nka bl1, 0(bl0)       IF  ID  EX  MEM WB
 
-eketsa nk3,nk3,bl1    IF  ID  --  EX  MEM WB
+eketsa nk3,nk3,bl1        IF  ID  **  EX MEM  WB
 ```
 
 In cycle 4 the load is in MEM, producing its value only at the end of that cycle. eketsa can use it in EX in cycle 5, forwarded from MEM/WB. lenane.limo stalls once per iteration: 4 stalls in 47 cycles.
